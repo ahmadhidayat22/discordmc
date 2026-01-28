@@ -2,15 +2,20 @@
   "name": "bot-discord",
   "version": "1.0.0",
   "description": "",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "child_process": "^1.0.2",
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.14.1",
+    "dotenv": "^17.2.3",
+    "media-downloader-ez": "^2.1.5",
+    "nodemon": "^3.1.11"
   },
   "devDependencies": {
     "eslint": "^8.57.0"

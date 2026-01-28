@@ -1,8 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const { token } = require('./config.json');
-
+require('dotenv').config();
+const configManager = require('./configManager');
+const token = process.env.TOKEN || "" ;
+// console.log(token)
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -11,6 +13,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 // It makes some properties non-nullable.
 client.cooldowns = new Collection();
 client.commands = new Collection();
+client.config = null;
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
