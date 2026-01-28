@@ -1,0 +1,11 @@
+{
+  "clientId": "1386781575823491245",
+  "guildId": "1023911531827707915",
+  "prefix": "!",
+  "commandname": "download",
+  "onlyONEchannel": false,
+  "channelid": "",
+  "autoCropVideos": false,
+  "adminRole": "1154452240677994637",
+  "logChannel": "1295824608984961064"
+}
