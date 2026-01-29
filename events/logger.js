@@ -1,4 +1,4 @@
-const configManager = require('./configManager');
+const configManager = require('../configManager');
 
 class Logger {
     constructor(client) {
