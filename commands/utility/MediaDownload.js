@@ -58,10 +58,10 @@ module.exports = {
             let attachment;
             if (cropOption !== null) {
                 // Use explicit crop option if provided
-                attachment = await MediaDownloader(videoUrl, { autocrop: cropOption, YTBcookie: ytbCookie, YTBmaxduration: 160, });
+                attachment = await MediaDownloader(videoUrl, { autocrop: cropOption, YTBmaxduration: 160, });
             } else {
                 // Use config setting
-                attachment = await MediaDownloader(videoUrl, { autocrop: config.autoCropVideos, YTBcookie: ytbCookie, YTBmaxduration: 160, });
+                attachment = await MediaDownloader(videoUrl, { autocrop: config.autoCropVideos, YTBmaxduration: 160, });
             }
 
             // Convert to Discord Attachment
