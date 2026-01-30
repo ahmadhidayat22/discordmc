@@ -14,8 +14,11 @@
     "child_process": "^1.0.2",
     "discord.js": "^14.14.1",
     "dotenv": "^17.2.3",
+    "ffmpeg-static": "^5.3.0",
+    "fs-extra": "^11.3.3",
     "media-downloader-ez": "^2.1.5",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "youtube-dl-exec": "^3.0.30"
   },
   "devDependencies": {
     "eslint": "^8.57.0"

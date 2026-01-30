@@ -1,86 +1,90 @@
 const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
-const MediaDownloader = require('media-downloader-ez'); // Make sure this path is correct
-const config = require('../../config.json'); // Make sure this path is correct
-require('dotenv').config();
-const ytbCookie = process.env.YTBCookie || "";
+const youtubedl = require('youtube-dl-exec');
+const fs = require('fs-extra');
+const path = require('path');
+const config = require('../../config.json');
+const ffmpegPath = require('ffmpeg-static'); // <--- TAMBAHAN 1
 
-// Helper function for deleting messages
-function deleteMessage(message, delay = 3000) {
-    if (!message || !message.delete) return;
-    setTimeout(() => {
-        message.delete().catch(console.error);
-    }, delay);
-}
+// Pastikan folder temp ada
+const tempDir = path.join(__dirname, '../../temp_downloads');
+fs.ensureDirSync(tempDir);
 
 module.exports = {
-    cooldown: 5,
+    cooldown: 10,
     data: new SlashCommandBuilder()
         .setName('download')
-        .setDescription('Download videos from social media (Instagram, YouTube, TikTok, X, Facebook)')
+        .setDescription('Download video dari Instagram, YouTube, TikTok, dll')
         .addStringOption(option =>
             option.setName('url')
-                .setDescription('The URL of the video to download')
-                .setRequired(true))
-        .addBooleanOption(option =>
-            option.setName('crop')
-                .setDescription('Crop the video (default: from config)')
-                .setRequired(false)),
+                .setDescription('Link video yang ingin didownload')
+                .setRequired(true)),
+    
     async execute(interaction) {
-        // Check if command is only allowed in specific channel
         if (config.onlyONEchannel && config.channelid !== interaction.channel.id) {
-            const reply = await interaction.reply({
-                content: `Only in channel <#${config.channelid}>`,
-                ephemeral: true
-            });
-            setTimeout(() => interaction.deleteReply().catch(console.error), 3000);
+            const reply = await interaction.reply({ content: `Hanya bisa digunakan di channel <#${config.channelid}>`, ephemeral: true });
+            setTimeout(() => interaction.deleteReply().catch(() => {}), 3000);
             return;
         }
 
-        // Get options from interaction
         const videoUrl = interaction.options.getString('url');
-        const cropOption = interaction.options.getBoolean('crop');
-        
-        // Check if URL is valid
-        if (!MediaDownloader.isVideoLink(videoUrl)) {
-            const reply = await interaction.reply({
-                content: 'Please specify a valid video URL from Instagram, YouTube, X, TikTok, Facebook...',
-                ephemeral: true
-            });
-            setTimeout(() => interaction.deleteReply().catch(console.error), 3000);
-            return;
-        }
-
-        // Defer reply since download might take time
         await interaction.deferReply();
 
+        const cookiePath = path.join(__dirname, '../../cookies.txt');
+        const outputFileName = `video-${interaction.id}.mp4`;
+        const outputPath = path.join(tempDir, outputFileName);
+
         try {
-            // Download the video
-            let attachment;
-            if (cropOption !== null) {
-                // Use explicit crop option if provided
-                attachment = await MediaDownloader(videoUrl, { autocrop: cropOption, YTBmaxduration: 160, });
-            } else {
-                // Use config setting
-                attachment = await MediaDownloader(videoUrl, { autocrop: config.autoCropVideos, YTBmaxduration: 160, });
+            console.log(`Mulai download: ${videoUrl}`); // Debugging Log
+
+            await youtubedl(videoUrl, {
+                output: outputPath,
+                noWarnings: true,
+                format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                cookies: fs.existsSync(cookiePath) ? cookiePath : undefined,
+                noCheckCertificates: true,
+                maxFilesize: '50m',
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                
+                // --- TAMBAHAN 2: Tentukan lokasi FFmpeg ---
+                ffmpegLocation: ffmpegPath 
+            });
+
+            if (!fs.existsSync(outputPath)) {
+                throw new Error('File hasil merge tidak ditemukan. Cek apakah FFmpeg bekerja.');
             }
 
-            // Convert to Discord Attachment
-            const discordAttachment = new AttachmentBuilder(attachment.path || attachment, {
-                name: 'video.mp4'
+            const stats = fs.statSync(outputPath);
+            const fileSizeInMegabytes = stats.size / (1024 * 1024);
+
+            // if (fileSizeInMegabytes > 30) { 
+            //     await interaction.editReply(`Video terlalu besar (${fileSizeInMegabytes.toFixed(2)} MB). Discord membatasi upload.`);
+            //     fs.removeSync(outputPath); 
+            //     return;
+            // }
+
+            const fileAttachment = new AttachmentBuilder(outputPath, { name: 'video.mp4' });
+
+            await interaction.editReply({
+                files: [fileAttachment]
             });
 
-            // Send the downloaded video
-            await interaction.editReply({
-                // content: `Downloaded by: \`${interaction.user.username}\``,
-                files: [discordAttachment]
-            });
+            fs.removeSync(outputPath);
 
         } catch (error) {
-            console.error('Download error:', error);
-            await interaction.editReply({
-                content: 'Error downloading video. Please check the URL and try again.',
-                ephemeral: true
+            console.error('Download Error:', error);
+            
+
+            const files = fs.readdirSync(tempDir);
+            files.forEach(file => {
+                if (file.includes(interaction.id)) {
+                    fs.removeSync(path.join(tempDir, file));
+                }
             });
+
+            let errorMessage = 'Gagal mendownload video.';
+            if (error.message && error.message.includes('Sign in to confirm your age')) errorMessage = 'Gagal: Video dibatasi umur/butuh login.';
+            
+            await interaction.editReply({ content: errorMessage, ephemeral: true });
         }
     },
 };
